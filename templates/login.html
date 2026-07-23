@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>login Page</title>
+</head>
+ {% with messages = get_flashed_messages() %}
+                            {% if messages %}
+                          {% for message in messages %}
+                          <center style="color:rgb(48, 50, 148);">{{message}}</center>
+                        
+                           {% endfor %} 
+                           {% endif %}
+                         {% endwith %}
+<body>
+    <center>
+        <form method="post">
+        <h1>Login</h1>
+        
+        <input type="email" name="useremail" placeholder="Email" required><br><br>
+        <input type="password" name="userpassword" placeholder="Password" required><br><br>
+        <button type="submit"></button>
+        </form>
+        <a href="{{url_for('forgotpwd')}}">forgotpassword</a>
+    </center>
+
+    
+</body>
+</html>
