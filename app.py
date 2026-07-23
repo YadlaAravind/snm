@@ -448,7 +448,6 @@ def logout():
     session.pop('userid')
     return redirect(url_for('login'))
 
-@app.route('/forgotpwd',methods=['GET','POST'])
 @app.route('/forgotpwd', methods=['GET', 'POST'])
 def forgotpwd():
     print("Forgot Password Route Called")
@@ -485,28 +484,44 @@ def forgotpwd():
 
     return render_template('forgotpwd.html')
 
-@app.route('/newpassword/<data>',methods=['GET','PUT'])
+@app.route('/newpassword/<data>', methods=['GET', 'POST', 'PUT'])
 def newpassword(data):
     try:
-        user_email=dedata(data)
-        if request.method=='POST':
-            npassword=request.get_json()['newpassword']
-            cpassword=request.get_json()['conforpassword']
-            cursor=mydb.cursor(buffered=True)
-            cursor.execute('select count(*) from userdata where=%s',[user_email])
-            email_count=cursor.fetchone()[0]
-            if email_count==1:
-                cursor.execute('update userdata set password=%s where useremail=%s',[npassword])
-                mydb.commit()
-                cursor.close()
-                return jsonify({"status":"failed","message":"email not found"})
-            else:
-                return jsonify({"status":"failed","message":"email not found"})
-        return render_template('newpassword.html',data=data)
+        user_email = dedata(data)
     except Exception as e:
         print(e)
-        return jsonify({"status":"failed","message":f'{str(e)}'}),500
-            
+        return jsonify({"status":"failed", "message":"Invalid or expired reset link"}), 400
 
+    if request.method in {'POST', 'PUT'}:
+        payload = request.get_json(silent=True) or request.form or {}
+        npassword = str(payload.get('newpassword', '')).strip()
+        cpassword = str(payload.get('confirmpassword', '')).strip()
+
+        if not npassword or not cpassword:
+            return jsonify({"status":"failed", "message":"Please provide both password fields"}), 400
+
+        if npassword != cpassword:
+            return jsonify({"status":"failed", "message":"Passwords do not match"}), 400
+
+        try:
+            cursor = mydb.cursor(buffered=True)
+            cursor.execute('SELECT COUNT(*) FROM userdata WHERE useremail=%s', [user_email])
+            email_count = cursor.fetchone()[0]
+
+            if email_count == 1:
+                cursor.execute('UPDATE userdata SET password=%s WHERE useremail=%s', [npassword, user_email])
+                mydb.commit()
+                cursor.close()
+                return jsonify({"status":"success", "message":"Password updated successfully"})
+
+            cursor.close()
+            return jsonify({"status":"failed", "message":"Email not found"}), 404
+        except Exception as e:
+            print(e)
+            return jsonify({"status":"failed", "message":"Could not update password"}), 500
+
+    return render_template('newpassword.html', data=data)
+            
+#finish
 if __name__=='__main__':
     app.run(debug=True,use_reloader=True)
